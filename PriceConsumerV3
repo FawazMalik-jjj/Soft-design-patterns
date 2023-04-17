@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@chainlink/contracts/src/v0.5/interfaces/AggregatorV3Interface.sol";
+
+contract PriceConsumerV3 {
+    AggregatorV3Interface internal priceFeed;
+    address private owner;
+
+    constructor() {
+        priceFeed = AggregatorV3Interface(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419); // ETH/USD on mainnet
+        owner = msg.sender;
+    }
+
+    function getLatestPrice() public view onlyOwner returns (string memory) {
+        (, int price, , ,) = priceFeed.latestRoundData();
+        return intToString(price, uint(priceFeed.decimals()));
+    }
+
+   
+    function intToString(int value, uint decimals) internal pure returns (string memory) {
+        bool negative = value < 0;
+        uint intValue = uint(negative ? -value : value);
+        string memory prefix = negative ? "-" : "";
+        uint len = intValue == 0 ? 2 : (2 + decimals);
+        bytes memory result = new bytes(len);
+
+        uint index = len - 1;
+        while (intValue > 0 || decimals > 0) {
+            if (index == len - 1 - decimals) {
+                result[index--] = ".";
+            }
+            result[index--] = bytes1(uint8(intValue % 10 + 48));
+            intValue /= 10;
+            decimals--;
+        }
+        bytes memory prefixBytes = bytes(prefix);
+        for (uint i = 0; i < prefixBytes.length; i++) {
+            result[i] = prefixBytes[i];
+        }
+        return string(result);
+    }
+    
+    function getETHUSDPrice() public view onlyOwner returns (uint) {
+        (, int price, , ,) = priceFeed.latestRoundData();
+        return uint(price);
+    }
+
+   function receive() external payable {
+    // do something with received Ether
+}
+
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only contract owner can execute this function");
+        _;
+    }
+}
